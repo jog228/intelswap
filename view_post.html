@@ -1,0 +1,780 @@
+{% extends "base.html" %}
+{% block title %}{{ post.title }} - Knowledge Exchange{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/monokai.min.css">
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<style>
+    .CodeMirror {
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        height: auto;
+        min-height: 300px;
+        font-size: 14px;
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    }
+    .post-body {
+        line-height: 1.8;
+        font-size: 16px;
+    }
+    .post-body p {
+        margin-bottom: 1rem;
+    }
+    .post-body ul, .post-body ol {
+        margin-bottom: 1rem;
+        padding-left: 2rem;
+    }
+    .post-body li {
+        margin-bottom: 0.5rem;
+    }
+    .post-body h1 {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-top: 1.5rem;
+        margin-bottom: 1rem;
+        border-bottom: 2px solid #e9ecef;
+        padding-bottom: 0.5rem;
+    }
+    .post-body h2 {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-top: 1.25rem;
+        margin-bottom: 0.75rem;
+    }
+    .post-body h3 {
+        font-size: 1.25rem;
+        font-weight: bold;
+        margin-top: 1rem;
+        margin-bottom: 0.5rem;
+    }
+    .post-body strong {
+        font-weight: bold;
+    }
+    .post-body em {
+        font-style: italic;
+    }
+    .post-body u {
+        text-decoration: underline;
+    }
+    .post-body s {
+        text-decoration: line-through;
+    }
+    .post-body a {
+        color: #0d6efd;
+        text-decoration: none;
+    }
+    .post-body a:hover {
+        text-decoration: underline;
+    }
+    .post-body blockquote {
+        border-left: 4px solid #dee2e6;
+        padding-left: 1rem;
+        margin: 1rem 0;
+        color: #6c757d;
+    }
+    .comment-editor {
+        min-height: 150px;
+    }
+    .comment-editor .ql-editor {
+        min-height: 150px;
+        font-size: 14px;
+    }
+    .comment-editor .ql-toolbar {
+        background-color: #f8f9fa;
+        border-top-left-radius: 0.25rem;
+        border-top-right-radius: 0.25rem;
+    }
+    .reply-editor .ql-editor {
+        min-height: 100px;
+        font-size: 14px;
+    }
+    .reply-editor .ql-toolbar {
+        background-color: #f8f9fa;
+    }
+</style>
+{% endblock %}
+{% macro render_comment(comment, post_id, is_question, is_author, current_user_id, answer_accepted) %}
+<div class="comment mb-3 {% if comment.is_accepted %}accepted-answer{% endif %}" style="margin-left: {{ 0 if not comment.parent_comment_id else 40 }}px;">
+    <div class="card {% if comment.is_accepted %}border-success{% endif %}">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                {% if comment.is_accepted %}
+                    <span class="badge bg-success ms-2">Answer Accepted</span>
+                {% endif %}
+            </div>
+            <div id="comment-display-{{ comment.id }}">
+                <p class="mb-2">{{ comment.body|safe }}</p>
+            </div>
+            <hr>
+            <p class="text-muted mb-3">
+                By <a href="{{ url_for('author_posts', username=comment.username) }}" style="color:#456e02;">{{ comment.full_name or comment.username }}</a>
+                {% if comment.updated_at and comment.updated_at != comment.created_at %}
+                    <small class="text-muted">edited at {{ comment.updated_at.strftime('%-m/%-d/%Y at %I:%M %p') }}</small>
+                {% else %}
+                    <small class="text-muted">{{ comment.created_at.strftime('%-m/%-d/%Y at %I:%M %p') }}</small>
+                {% endif %}
+            </p>
+
+            {% if comment.code_snippets %}
+            <div class="comment-code-snippets mb-2">
+                {% for snippet in comment.code_snippets %}
+                <div class="card mb-2">
+                    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                        <span>
+                            {% if snippet.title %}
+                                {{ snippet.title }}
+                            {% else %}
+                                Code Snippet
+                            {% endif %}
+                        </span>
+                        <span class="badge bg-secondary">{{ snippet.language }}</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <pre class="mb-0 bg-dark text-white p-3" style="max-height: 300px; overflow-y: auto;"><code class="language-{{ snippet.language }}">{{ snippet.code }}</code></pre>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+            {% if comment.attachments %}
+            <div class="comment-attachments mb-2">
+                <small class="text-muted">Attachments ({{ comment.attachments|length }})</small>
+                <div class="list-group list-group-flush">
+                    {% for attachment in comment.attachments %}
+                    <a href="{{ url_for('download_file', filename=attachment.filename) }}" 
+                       class="list-group-item list-group-item-action py-1 px-2 d-flex justify-content-between align-items-center">
+                        <small>
+                            <i class="bi bi-file-earmark"></i>
+                            {{ attachment.original_filename }}
+                            <span class="text-muted">({{ (attachment.file_size / 1024) | round(1) }} KB)</span>
+                        </small>
+                        <i class="bi bi-download"></i>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            <div class="mb-3">
+                <button type="button" class="btn btn-sm" style="background-color: #456e02; color: white !important;" onclick="toggleReplyForm({{ comment.id }})">
+                    Reply
+                </button>
+                {% if comment.author_id == current_user_id %}
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="toggleEditForm({{ comment.id }})">Edit</button>
+                {% endif %}
+                {% if is_question and is_author and not comment.parent_comment_id  %}
+                    {% if comment.is_accepted %}
+                        <form method="POST" action="{{ url_for('unaccept_comment', post_id=post_id, comment_id=comment.id) }}" class="d-inline m-0">
+                        <button type="submit" class="btn btn-danger btn-sm text-white">
+                            Unmark
+                        </button>
+                    </form>
+                    {% elif not answer_accepted %}
+                        <form method="POST" action="{{ url_for('accept_comment', post_id=post_id, comment_id=comment.id) }}" class="d-inline m-0">
+                        <button type="submit" class="btn btn-danger btn-sm text-white">
+                            Mark as Answer
+                        </button>
+                    </form>
+                    {% endif %}
+                {% endif %}
+            </div>
+
+            {% if comment.author_id == current_user_id %}
+            <div id="comment-edit-form-{{ comment.id }}" class="mb-2" style="display: none;">
+                <form method="POST" action="{{ url_for('edit_comment', post_id=post_id, comment_id=comment.id) }}" class="edit-comment-form" data-comment-id="{{ comment.id }}">
+                    <div class="mb-2">
+                        <div id="edit-editor-{{ comment.id }}" class="reply-editor"></div>
+                        <input type="hidden" name="body" id="edit-body-{{ comment.id }}">
+                        <textarea id="edit-original-content-{{ comment.id }}" style="display: none;">{{ comment.body|safe }}</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-sm" style="background-color: #456e02; color: white !important;">Save</button>
+                    <button type="button" class="btn btn-secondary btn-sm" style="color: white !important;" onclick="toggleEditForm({{ comment.id }})">Cancel</button>
+                </form>
+            </div>
+            {% endif %}
+
+            <div id="reply-form-{{ comment.id }}" class="mt-2" style="display: none;">
+                <form method="POST" action="{{ url_for('add_comment', post_id=post_id) }}" enctype="multipart/form-data" class="reply-comment-form" data-comment-id="{{ comment.id }}">
+                    <input type="hidden" name="parent_comment_id" value="{{ comment.id }}">
+                    <div class="mb-2">
+                        <div id="reply-editor-{{ comment.id }}" class="reply-editor"></div>
+                        <input type="hidden" name="body" id="reply-body-{{ comment.id }}">
+                    </div>
+                    <div class="mb-2 attachment-picker">
+                        <input type="file" class="hidden-file-input" name="comment_attachments" multiple style="display: none;">
+                        <input type="file" class="form-control mb-3 file-picker" accept=".txt,.pdf,.png,.jpg,.jpeg,.gif,.doc,.docx,.xls,.xlsx,.zip,.csv">
+                        <div class="selected-files-list"></div>
+                        <small class="form-text text-muted">
+                            Allowed: txt, pdf, png, jpg, jpeg, gif, doc, docx, xls, xlsx, zip, csv
+                        </small>
+                    </div>
+                    <button type="submit" class="btn btn-sm" style="background-color: #456e02; color: white !important;">Reply</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="toggleReplyForm({{ comment.id }})">Cancel</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% if comment.replies %}
+        {% for reply in comment.replies %}
+            {{ render_comment(reply, post_id, is_question, is_author, current_user_id, answer_accepted) }}
+        {% endfor %}
+    {% endif %}
+</div>
+{% endmacro %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-10 offset-md-1">
+            <div class="card">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <div>
+                        {% if post.is_question %}
+                            <a href="{{ url_for('home', type='question') }}" class="badge bg-warning text-dark text-decoration-none">Question</a>
+                        {% else %}
+                            <a href="{{ url_for('home', type='post') }}" class="badge bg-info text-dark text-decoration-none">Post</a>
+                        {% endif %}
+                    </div>
+                    <span class="text-muted float-end">{{ post.view_count or 0 }} views</span>
+                </div>
+                <div class="card-body">
+                    <h2 >{{ post.title }}</h2>
+                    <p class="text-muted">
+                        By <a href="{{ url_for('author_posts', username=post.username) }}" style="color: #456e02;">{{ post.full_name or post.username }}</a>
+                        {% if post.updated_at != post.created_at %}
+                            edited at {{ post.created_at.strftime('%-m/%-d/%Y %I:%M %p') }}
+                            <a href="{{ url_for('post_history', id=post.id) }}" class="text-decoration-none small" style="color: #456e02;">
+                                (view history)
+                            </a>
+                        {% else %}
+                            at {{ post.created_at.strftime('%-m/%-d/%Y %I:%M %p') }}
+                        {% endif %}
+                    </p>
+                    <div class="mb-3">
+                        {% if post_datasets %}
+                            {% for dataset in post_datasets %}
+                            <a href="{{ url_for('dataset_detail', slug=dataset.slug) }}" class="badge dataset-badge text-decoration-none"
+                                style="background-color: #d3d3d3; color: black !important; margin-right: 10px; margin-bottom: 5px;">
+                                    <i class="bi"></i> {{ dataset.name }}
+                            </a>
+                            {% endfor %}
+                        {% endif %}
+                        {% if post_tags %}
+                            {% for tag in post_tags %}
+                            <a href="{{ url_for('tag_detail', slug=tag.slug) }}" class="badge text-decoration-none" 
+                                style="background-color: #d3d3d3; color: black !important; margin-right: 10px; margin-bottom: 5px;">{{ tag.name }}</a>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                    <hr>
+                    <div>{{ post.body|safe }}</div>
+
+                    {% if code_snippets %}
+                    <div class="code-snippets mt-4 mb-4">
+                        <h6 class="mb-3">
+                            <i class="bi"></i>
+                            Code Snippets ({{ code_snippets|length }})
+                        </h6>
+                        {% for snippet in code_snippets %}
+                        <div class="card mb-3">
+                            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                                <span>
+                                    {% if snippet.title %}
+                                        {{ snippet.title }}
+                                    {% else %}
+                                        Code Snippet
+                                    {% endif %}
+                                </span>
+                                <span class="badge bg-secondary">{{ snippet.language }}</span>
+                            </div>
+                            <div class="card-body p-0">
+                                <pre class="mb-0 bg-dark text-white p-3" style="max-height: 400px; overflow-y: auto;"><code class="language-{{ snippet.language }}">{{ snippet.code }}</code></pre>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    {% if attachments %}
+                    <div class="attachments mt-3">
+                        <h6>Attachments ({{ attachments|length }})</h6>
+                        <div class="list-group">
+                            {% for attachment in attachments %}
+                            <a href="{{ url_for('download_file', filename=attachment.filename) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="bi bi-file-earmark"></i> {{ attachment.original_filename }}
+                                    <small class="text-muted">({{ (attachment.file_size / 1024 ) | round(1) }} KB)</small>
+                                </div>
+                                <i class = "bi bi-download"></i>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    <div class="mt-3">
+                        {% if current_user.is_authenticated and is_author %}
+                            <a href="{{ url_for('edit_post', id=post.id) }}" class="btn btn-outline-danger btn-sm">
+                                Edit
+                            </a>
+                            {% if post['is_archived'] %}
+                                <form action="{{ url_for('unarchive', id=post['id']) }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-dark"
+                                        onclick="return confirm('Unarchive this post? It will be shown to everyone except.');">
+                                        <i class="bi bi-archive-fill"></i> Unarchive
+                                    </button>
+                                </form>
+                            {% else %}
+                                <form action="{{ url_for('archive', id=post['id']) }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-dark"
+                                        onclick="return confirm('Archive this post? It will be hidden from everyone except you.');">
+                                        <i class="bi bi-archive"></i> Archive
+                                    </button>
+                                </form>
+                            {% endif %}
+                        {% endif %}
+
+                        {% if current_user.is_authenticated %}
+                            {% if is_bookmarked %}
+                                <form method="POST" action="{{ url_for('unbookmark_post', post_id=post.id) }}" class="d-inline">
+                                    <button type="submit" class="btn btn-warning btn-sm" title="Remove bookmark">
+                                        <i class="bi bi-bookmark-fill"></i> Bookmark
+                                    </button>
+                                </form>
+                            {% else %}
+                                <form method="POST" action="{{ url_for('bookmark_post', post_id=post.id) }}" class="d-inline">
+                                    <button type="submit" class="btn btn-warning btn-sm" title="Bookmark this post">
+                                        <i class="bi bi-bookmark"></i> Bookmark
+                                    </button>
+                                </form>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="mt-4">
+                <h4>Comments ({{ comments|length }})</h4>
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <form id="comment-form" method="POST" action="{{ url_for('add_comment', post_id=post.id) }}" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label class="form-label">Write a comment</label>
+                                <div id="comment-editor" class="comment-editor"></div>
+                                <input type="hidden" name="body" id="comment-body">
+                            </div>
+                            <div class="mb-3">
+                                <button type="button" class="btn btn btn-sm" style="color: #456e02; border-color: #456e02;" onclick="toggleCommentCodeSection()">
+                                    <i class="bi bi-code-slash"></i> Add Code Block
+                                </button>
+                                <div id="comment-code-section" style="display: none;" class="mt-3">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <div id="comment-code-snippets-container"></div>
+                                            <button type="button" class="btn btn-sm btn-success" onclick="addCommentCodeEditor()">
+                                                Add Another Code Block
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3 attachment-picker">
+                                <input type="file" class="hidden-file-input" name="comment_attachments" multiple style="display: none;">
+                                <input type="file" class="form-control mb-3 file-picker" accept=".txt,.pdf,.png,.jpg,.jpeg,.gif,.doc,.docx,.xls,.xlsx,.zip,.csv">
+                                <div class="selected-files-list"></div>
+                                <small class="text-muted">Optional: Attach files (max 16MB each)</small>
+                            </div>
+                            <button type="submit" class="btn btn-sm" style="background-color: #456e02; color: white !important;">Add Comment</button>
+                        </form>
+                    </div>
+                </div>
+                {% if comments %}
+                    {% set answer_accepted = comments | selectattr('is_accepted') | list | length > 0 %}
+                    {% for comment in comments %}
+                        {{ render_comment(comment, post.id, post.is_question, is_author, current_user.id if current_user.is_authenticated else None, answer_accepted) }}
+                    {% endfor %}
+                {% endif %}
+            </div>
+            <div class="mt-3">
+                <a href="{{ url_for('home') }}" class="btn btn-secondary">Back to Home</a>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/r/r.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/shell/shell.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/markdown/markdown.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+
+<script>
+var commentQuill = new Quill('#comment-editor', {
+    theme: 'snow',
+    placeholder: 'Write a comment...',
+    modules: {
+        toolbar: [
+            ['bold', 'italic', 'underline', 'strike'],
+            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+            ['link'],
+            ['clean']
+        ]
+    }
+});
+let replyQuills = {};
+function toggleReplyForm(commentId) {
+    const form = document.getElementById('reply-form-' + commentId);
+    if (form.style.display === 'none') {
+        form.style.display = 'block';
+        if(!replyQuills[commentId]) {
+            const editorElement = document.getElementById('reply-editor-'+ commentId);
+            if (editorElement) {
+                replyQuills[commentId] = new Quill('#reply-editor-' + commentId, {
+                    theme: 'snow',
+                    placeholder: 'Write a reply...',
+                    modules: {
+                        toolbar: [
+                            ['bold', 'italic', 'underline', 'strike'],
+                            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                            ['link'],
+                            ['clean']
+                        ]
+                    }
+                });
+            }
+        }
+    } else {
+        form.style.display = 'none';
+    }
+}
+
+let editQuills = {};
+function toggleEditForm(commentId) {
+    const form = document.getElementById('comment-edit-form-' + commentId);
+    const display = document.getElementById('comment-display-' + commentId);
+    if (!form) return;
+    if (form.style.display === 'none') {
+        form.style.display = 'block';
+        if (display) display.style.display = 'none';
+        if (!editQuills[commentId]) {
+            const originalTextarea = document.getElementById('edit-original-content-' + commentId);
+            const originalContent = originalTextarea ? originalTextarea.value : '';
+            editQuills[commentId] = new Quill('#edit-editor-' + commentId, {
+                theme: 'snow',
+                modules: {
+                    toolbar: [
+                        ['bold', 'italic', 'underline', 'strike'],
+                        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                        ['link'],
+                        ['clean']
+                    ]
+                }
+            });
+            if (originalContent) {
+                editQuills[commentId].root.innerHTML = originalContent;
+            }
+        } else {
+            const originalTextarea = document.getElementById('edit-original-content-' + commentId);
+            const originalContent = originalTextarea ? originalTextarea.value : '';
+            if (originalContent) {
+                editQuills[commentId].root.innerHTML = originalContent;
+            }
+        }
+    } else {
+        form.style.display = 'none';
+        if (display) display.style.display = 'block';
+    }
+}
+
+const mainCommentForm = document.getElementById('comment-form');
+if (mainCommentForm) {
+    mainCommentForm.addEventListener('submit', function(e) {
+        var html = commentQuill.root.innerHTML;
+        if (commentQuill.getText().trim().length === 0) {
+            e.preventDefault();
+            alert('Please enter comment content');
+            return false;
+        }
+        document.getElementById('comment-body').value = html;
+        for (const [snippetId, editor] of Object.entries(commentCodeEditors)) {
+            editor.save();
+        }
+    });
+}
+
+document.addEventListener('submit', function(e) {
+    if (e.target.classList.contains('reply-comment-form')) {
+        const commentId = e.target.getAttribute('data-comment-id');
+        const replyQuill = replyQuills[commentId];  
+        if (replyQuill) {
+            var html = replyQuill.root.innerHTML;
+            if (replyQuill.getText().trim().length === 0) {
+                e.preventDefault();
+                alert('Please enter reply content');
+                return false;
+            }
+            const hiddenInput = document.getElementById('reply-body-' + commentId);
+            if (hiddenInput) {
+                hiddenInput.value = html;
+            }
+        } else {
+            e.preventDefault();
+            alert('Please wait for the editor to load');
+            return false;
+        }
+    }
+
+    if (e.target.classList.contains('edit-comment-form')) {
+        const commentId = e.target.getAttribute('data-comment-id');
+        const editQuill = editQuills[commentId];
+        if (!editQuill) {
+            e.preventDefault();
+            alert('Please wait for the editor to load');
+            return false;
+        }
+        const htmlContent = editQuill.root.innerHTML;
+        const textContent = editQuill.getText().trim();
+        if (textContent.length === 0 || htmlContent === '<p></p>') {
+            e.preventDefault();
+            alert('Comment cannot be empty');
+            return false;
+        }
+        document.getElementById('edit-body-' + commentId).value = htmlContent;
+        return true;
+    }
+});
+
+let commentSnippetCount = 0;
+let commentCodeEditors = {};
+const commentLanguageModes = {
+    'text': 'text/plain',
+    'python': 'python',
+    'javascript': 'javascript',
+    'java': 'text/x-java',
+    'cpp': 'text/x-c++src',
+    'c': 'text/x-csrc',
+    'csharp': 'text/x-csharp',
+    'sql': 'sql',
+    'html': 'htmlmixed',
+    'css': 'css',
+    'markdown': 'markdown',
+    'r': 'r',
+    'bash': 'shell',
+    'json': 'javascript',
+    'xml': 'xml'
+};
+function toggleCommentCodeSection() {
+    const section = document.getElementById('comment-code-section');
+    if (section.style.display == 'none') {
+        section.style.display = 'block';
+        if (commentSnippetCount === 0) {
+            addCommentCodeEditor();
+        }
+    } else {
+        section.style.display = 'none';
+    }
+}
+function addCommentCodeEditor() {
+    const container = document.getElementById('comment-code-snippets-container');
+    const snippetId = commentSnippetCount++;
+    const editorDiv = document.createElement('div');
+    editorDiv.className = 'code-editor-container card mb-3';
+    editorDiv.id = `comment-editor-container-${snippetId}`;
+    editorDiv.innerHTML = `
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <span>Code Block ${snippetId + 1}</span>
+            <button type="button" class="btn btn-sm btn-danger" onclick="removeCommentCodeEditor(${snippetId})">
+                <i class="bi bi-x"></i> Remove
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="row mb-2">
+                <div class="col-md-6">
+                    <input type="text" class="form-control form-control-sm" id="comment_code_title_${snippetId}" name="comment_code_title_${snippetId}" placeholder="Title (optional) e.g., 'solution.py'">
+                </div>
+                <div class="col-md-6">
+                    <select class="form-select form-select-sm" id="comment_code_language_${snippetId}" name="comment_code_language_${snippetId}" onchange="changeCommentLanguage(${snippetId}, this.value)">
+                        <option value="text">Plain Text</option>
+                        <option value="python" selected>Python</option>
+                        <option value="javascript">JavaScript</option>
+                        <option value="java">Java</option>
+                        <option value="cpp">C++</option>
+                        <option value="c">C</option>
+                        <option value="csharp">C#</option>
+                        <option value="sql">SQL</option>
+                        <option value="html">HTML</option>
+                        <option value="css">CSS</option>
+                        <option value="markdown">Markdown</option>
+                        <option value="r">R</option>
+                        <option value="bash">Bash/Shell</option>
+                        <option value="json">JSON</option>
+                        <option value="xml">XML</option>
+                    </select>
+                </div>
+            </div>
+            <textarea id="comment_code_content_${snippetId}" name="comment_code_content_${snippetId}" style="display: none;"></textarea>
+            <div id="comment_codemirror_${snippetId}"></div>
+        </div>
+    `;
+    container.appendChild(editorDiv);
+    setTimeout(() => {
+        const textarea = document.getElementById(`comment_code_content_${snippetId}`);
+        if (textarea) {
+            const editor = CodeMirror.fromTextArea(textarea, {
+                mode: 'python',
+                theme: 'monokai',
+                lineNumbers: true,
+                indentUnit: 4,
+                smartIndent: true,
+                indentWithTabs: false,
+                lineWrapping: true,
+                matchBrackets: true,
+                extraKeys: {
+                    'Tab': function(cm) {
+                        if (cm.somethingSelected()) {
+                            cm.indentSelection('add');
+                        } else {
+                            cm.replaceSelection('    ', 'end');
+                        }
+                    },
+                    'Shift-Tab': function(cm) {
+                        cm.indentSelection('subtract');
+                    }
+                }
+            });
+            
+            commentCodeEditors[snippetId] = editor;
+            editor.setSize(null, 300);
+        }
+    }, 100);
+}
+function changeCommentLanguage(snippetId, language) {
+    const editor = commentCodeEditors[snippetId];
+    if (editor) {
+        editor.setOption('mode', commentLanguageModes[language] || 'text/plain');
+    }
+}
+function removeCommentCodeEditor(snippetId) {
+    const container = document.getElementById(`comment-editor-container-${snippetId}`);
+    if (container) {
+        if (commentCodeEditors[snippetId]) {
+            commentCodeEditors[snippetId].toTextArea();
+            delete commentCodeEditors[snippetId];
+        }
+        container.remove();
+    }
+}
+
+function initAttachmentPicker(container) {
+    const filePicker = container.querySelector('.file-picker');
+    const hiddenFileInput = container.querySelector('.hidden-file-input');
+    const selectedFilesList = container.querySelector('.selected-files-list');
+    if (!filePicker || !hiddenFileInput || !selectedFilesList) {
+        return;
+    }
+    let selectedFiles = new DataTransfer();
+    filePicker.addEventListener('change', function(e) {
+        const files = Array.from(e.target.files);
+        files.forEach(file => {
+            if (file.size > 16 * 1024 * 1024) {
+                alert(`File "${file.name}" is too large. Maximum size is 16MB.`);
+                return;
+            }
+            const existingFiles = Array.from(selectedFiles.files);
+            const isDuplicate = existingFiles.some(f =>
+                f.name === file.name && f.size === file.size
+            );
+            if (!isDuplicate) {
+                selectedFiles.items.add(file);
+            }
+        });
+        hiddenFileInput.files = selectedFiles.files;
+        filePicker.value = '';
+        updateFileDisplay();
+    });
+    function updateFileDisplay() {
+        selectedFilesList.innerHTML = '';
+        if (selectedFiles.files.length === 0) {
+            selectedFilesList.innerHTML = '<p class="text-muted small mb-0">No files selected</p>';
+            return;
+        }
+        const fileListDiv = document.createElement('div');
+        fileListDiv.className = 'border rounded p-2 bg-light mb-2';
+        Array.from(selectedFiles.files).forEach((file, index) => {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'd-flex justify-content-between align-items-center pb-2 mb-2';
+            if (index < selectedFiles.files.length - 1) {
+                fileItem.className += ' border-bottom';
+            }
+            const fileInfo = document.createElement('div');
+            const fileIcon = getFileIcon(file.name);
+            fileInfo.innerHTML = `
+                <i class="bi ${fileIcon}"></i> ${escapeHtml(file.name)}
+                <small class="text-muted">(${(file.size / 1024).toFixed(2)} KB)</small>
+            `;
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn btn-sm btn-danger';
+            removeBtn.innerHTML = '<i class="bi"></i> Remove';
+            removeBtn.onclick = function() {
+                removeFile(index);
+            };
+            fileItem.appendChild(fileInfo);
+            fileItem.appendChild(removeBtn);
+            fileListDiv.appendChild(fileItem);
+        });
+        const totalSize = Array.from(selectedFiles.files).reduce((sum, file) => sum + file.size, 0);
+        const countDiv = document.createElement('div');
+        countDiv.className = 'mt-2 text-success';
+        countDiv.innerHTML = `
+            <i class="bi bi-check-circle"></i> ${selectedFiles.files.length} file(s) ready to upload
+            <span class="text-muted">(Total: ${(totalSize / 1024).toFixed(2)} KB)</span>
+        `;
+        selectedFilesList.appendChild(fileListDiv);
+        selectedFilesList.appendChild(countDiv);
+    }
+    function removeFile(index) {
+        const dt = new DataTransfer();
+        const files = Array.from(selectedFiles.files);
+        files.forEach((file, i) => {
+            if (i !== index) {
+                dt.items.add(file);
+            }
+        });
+        selectedFiles = dt;
+        hiddenFileInput.files = selectedFiles.files;
+        updateFileDisplay();
+    }
+    function getFileIcon(filename) {
+        const ext = filename.split('.').pop().toLowerCase();
+        const iconMap = {
+            'pdf': 'bi-file-pdf',
+            'doc': 'bi-file-word',
+            'docx': 'bi-file-word',
+            'xls': 'bi-file-excel',
+            'xlsx': 'bi-file-excel',
+            'zip': 'bi-file-zip',
+            'png': 'bi-file-image',
+            'jpg': 'bi-file-image',
+            'jpeg': 'bi-file-image',
+            'gif': 'bi-file-image',
+            'txt': 'bi-file-text',
+            'csv': 'bi-file-spreadsheet'
+        };
+        return iconMap[ext] || 'bi-file-earmark';
+    }
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    updateFileDisplay();
+}
+document.querySelectorAll('.attachment-picker').forEach(initAttachmentPicker);
+</script>
+{% endblock %}

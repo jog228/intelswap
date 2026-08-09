@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+{% block title %}Home - Knowledge Exchange{% endblock %}
+{% block extra_head %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    .select2-container--default .select2-selection--single {
+        height: 38px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 36px;
+        padding-left: 12px;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 36px;
+    }
+    .nav-tabs .nav-link {
+        color: #456e02;
+    }
+    .nav-tabs .nav-link:hover {
+        color: #567f03;
+        border-color: #dee2e6 #dee2e6 #dee2e6;
+    }
+    .nav-tabs .nav-link.active {
+        color: #456e02;
+        border-color: #456e02 #456e02 #fff;
+        font-weight: 600;
+    }
+    .pagination .page-link {
+        color: #456e02;
+    }
+    .pagination .page-link:hover {
+        color: #567f03;
+        background-color: rgba(69, 110, 2, 0.1);
+        border-color: #456e02;
+    }
+    .pagination .page-item.active .page-link {
+        background-color: #456e02;
+        border-color: #456e02;
+        color: white;
+    }
+    .pagination .page-item.disabled .page-link {
+        color: #6c757d;
+    }
+    .form-control#searchInput:focus,
+    input.form-control#searchInput:focus {
+        border-color: #5a8a04 !important;
+        outline: 0 !important;
+        box-shadow: 0 0 0 0.2rem rgba(69, 110, 2, 0.25) !important;
+    }
+</style>
+{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Recent Posts</h2>
+                <a href="{{ url_for('new_post') }}" class="btn" style="background-color: #456e02; color: white !important;">New Post or Question</a>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="GET" action="{{ url_for('search') }}" class="row g-3" id="searchForm">
+                        <div class="col-md-10">
+                            <div class="position-relative">
+                                <span class="input-group-text position-absolute"
+                                    style="left: 0; top: 0; bottom: 0; border: none; background: transparent; z-index: 5;">
+                                    <i class="bi bi-search"></i>
+                                </span>
+                                <input type="text" class="form-control ps-5 pe-5" name="q" id="searchInput"
+                                    placeholder="Search keywords, tags, datasets, authors..."
+                                    value="{{ request.args.get('q', '') }}" style="padding-left: 2.5rem !important; padding-right: 2.5rem !important;">
+                                <button type="button" class="btn btn-link position-absolute" id="clearSearch"
+                                    style="right: 5px; top: 50%; transform: translateY(-50%); padding: 0; color: #6c757d; text-decoration: none; z-index: 5; display: none;">
+                                    <i class="bi bi-x-circle-fill" style="font-size: 1.2rem;"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn w-100 bi bi-search" style="background-color: #456e02; color: white !important;"></button>
+                        </div>
+                        {% if request.args.get('q') %}
+                        <div class="col-12" id="searchStatus">
+                            <small class="text-muted">
+                                Searching for: {{ request.args.get('q') }}
+                            </small>
+                        </div>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+
+            <ul class="nav nav-tabs mb-3">
+                <li class="nav-item">
+                    <a class="nav-link {% if post_type == 'all' %}active{% endif %}" href="{{ url_for('home', type='all') }}">All</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if post_type == 'question' %}active{% endif %}" href="{{ url_for('home', type='question') }}">Questions</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if post_type == 'post' %}active{% endif %}" href="{{ url_for('home', type='post') }}">Posts</a>
+                </li>
+            </ul>
+            {% if post_type == 'question' %}
+            <div class="btn-group mb-3" role="group">
+                <a href="{{ url_for('home', type='question', answered='all') }}" class="btn btn-small {% if answered == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">All Questions</a>
+                <a href="{{ url_for('home', type='question', answered='answered') }}" class="btn btn-small {% if answered == 'answered' %}btn-warning{% else %}btn-outline-warning{% endif %}">Answered</a>
+                <a href="{{ url_for('home', type='question', answered='unanswered') }}" class="btn btn-small {% if answered == 'unanswered' %}btn-danger{% else %}btn-outline-danger{% endif %}">Unanswered</a>
+            </div>
+            {% endif %}
+            {% if posts %}
+                {% for post in posts %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h5 class="card-title mb-0 flex-grow-1">
+                                <a href="{{ url_for('view_post', id=post.id) }}" class="text-decoration-none" style="color: #456e02;">{{ post.title }}</a>
+                            </h5>
+                            <div class="text-end ms-3" style="min-width: 150px;">
+                                <div class="mb-1">
+                                    {% if post.is_question %}
+                                        <a href="{{ url_for('home', type='question') }}" class="badge badge-lg bg-warning text-dark text-decoration-none">Question</a>
+                                    {% else %}
+                                        <a href="{{ url_for('home', type='post') }}" class="badge badge-lg bg-info text-dark text-decoration-none">Post</a>
+                                    {% endif %}
+                                </div>
+                                <div class="text-bold">
+                                    <span class="bi bi-eye me-2"> {{post.view_count or 0 }} views</span>
+                                    <span class="me-2">|</span>
+                                    <span class="bi bi-chat"> {{ post.comment_count or 0 }} comments</span>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-muted small mb-3">
+                            By <a href="{{ url_for('author_posts', username=post.username) }}" style="color: #456e02;">{{ post.full_name or post.username }}</a>
+                            {% if post.updated_at != post.created_at %}
+                                edited at {{ post.created_at.strftime('%-m/%-d/%Y %I:%M %p') }}
+                            {% else %}
+                                at {{ post.created_at.strftime('%-m/%-d/%Y %I:%M %p') }}
+                            {% endif %}
+                        </p>
+                        <p class="card-text mb-2 post-preview" style="line-height: 1.5;">
+                            {% set plain_text = (post.body|striptags).strip() %}
+                            {% set first_p = post.body.split('</p>')[0]|striptags|trim %}
+                            
+                            {% if first_p %}
+                                {% if first_p|length > 200 %}
+                                    {{ first_p[:200] }}...
+                                {% else %}
+                                    {{ first_p }}{% if post.body.split('</p>')|length > 1 %}...{% endif %}
+                                {% endif %}
+                            {% elif plain_text|length > 200 %}
+                                {{ plain_text[:200] }}...
+                            {% else %}
+                                {{ plain_text }}
+                            {% endif %}
+                        </p>  
+                        {% if post.dataset_name %}
+                        <a href="{{ url_for('dataset_detail', slug=post.dataset_slug) }}" class="badge dataset-badge text-decoration-none"
+                            style="background-color: #d3d3d3; color: black !important; margin-right: 10px; margin-bottom: 5px; margin-top: 10px;">
+                                <i class="bi"></i> {{ post.dataset_name }}
+                        </a>
+                        {% endif %}
+                        {% if post.tags %}
+                            {% for tag in post.tags %}
+                            <a href="{{ url_for('tag_detail', slug=tag.slug) }}" class="badge text-decoration-none" 
+                                style="background-color: #d3d3d3 ; color: black !important; margin-right: 10px; margin-bottom: 5px; margin-top: 10px;"> {{ tag.name }}</a>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+                
+                {% if total_pages > 1 %}
+                <nav aria-label="Page navigation" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+                            {% if page > 1 %}
+                            <a class="page-link" href="{{ url_for('home', type=post_type, answered=answered, page=page-1) }}">
+                                <i class="bi bi-chevron-left"></i> Previous
+                            </a>
+                            {% else %}
+                            <span class="page-link"><i class="bi bi-chevron-left"></i> Previous</span>
+                            {% endif %}
+                        </li>
+                        {% if page > 3 %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('home', type=post_type, answered=answered, page=1) }}">1</a>
+                        </li>
+                        {% if page > 4 %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                        {% endif %}
+                        {% endif %}
+                        {% for p in range([page - 2, 1]|max, [page + 2, total_pages]|min + 1) %}
+                        <li class="page-item {% if p == page %}active{% endif %}">
+                            {% if p == page %}
+                            <span class="page-link">{{ p }}</span>
+                            {% else %}
+                            <a class="page-link" href="{{ url_for('home', type=post_type, answered=answered, page=p) }}">{{ p }}</a>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                        {% if page < total_pages - 2 %}
+                        {% if page < total_pages - 3 %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                        {% endif %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('home', type=post_type, answered=answered, page=total_pages) }}">{{ total_pages }}</a>
+                        </li>
+                        {% endif %}
+                        <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+                            {% if page < total_pages %}
+                            <a class="page-link" href="{{ url_for('home', type=post_type, answered=answered, page=page+1) }}">
+                                Next <i class="bi bi-chevron-right"></i>
+                            </a>
+                            {% else %}
+                            <span class="page-link">Next <i class="bi bi-chevron-right"></i></span>
+                            {% endif %}
+                        </li>
+                    </ul>
+                    <p class="text-center text-muted small">
+                        Page {{ page }} of {{ total_pages }}
+                    </p>
+                </nav>
+                {% endif %}
+            {% else %}
+                <div class="alert alert-success">Be the first to post or ask a question!</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('searchInput');
+        const clearBtn = document.getElementById('clearSearch');
+        function toggleClearButton() {
+            if (searchInput.value.trim() !== '') {
+                clearBtn.style.display = 'block';
+            } else {
+                clearBtn.style.display = 'none';
+            }
+        }
+        toggleClearButton();
+        searchInput.addEventListener('input', toggleClearButton);
+        clearBtn.addEventListener('click', function() {
+            if ({{ 'true' if request.args.get('q') else 'false'}}) {
+                window.location.href = "{{ url_for('home', type=post_type) }}";
+            } else {
+                searchInput.value = '';
+                toggleClearButton();
+                searchInput.focus();
+            }
+        });
+        clearBtn.addEventListener('mouseenter', function () {
+            this.style.color = '#dc3545';
+        });
+        clearBtn.addEventListener('mouseleave', function() {
+            this.style.color = '#6c757d'
+        })
+    });
+</script>
+<style>
+    .badge-lg {
+        font-size: 0.9rem;
+        padding: 0.4rem 0.4rem;
+    }
+</style>
+{% endblock %}

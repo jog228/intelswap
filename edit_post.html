@@ -1,0 +1,606 @@
+{% extends "base.html" %}
+{% block title %}Edit Post - Knowledge Exchange{% endblock %}
+{% block extra_head %}
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/monokai.min.css">
+<style>
+    .ql-editor {
+        min-height: 300px;
+        font-size: 16px;
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    .ql-container {
+        font-family: inherit;
+    }
+    .ql-toolbar {
+        background-color: #f8f9fa;
+        border-top-left-radius: 0.25rem;
+        border-top-right-radius: 0.25rem;
+    }
+
+    .CodeMirror {
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        height: auto;
+        min-height: 300px;
+        font-size: 14px;
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    }
+
+    .code-snippet-item {
+        transition: all 0.3s ease;
+    }
+
+    .code-snippet-item:hover {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .remove-snippet {
+        transition: all 0.2s ease;
+    }
+
+    .remove-snippet:hover {
+        transform: scale(1.05);
+    }
+    .original-value {
+        background-color: #fff3cd;
+        border-left: 4px solid #ffc107;
+        padding: 10px;
+        margin-top: 10px;
+        border-radius: 4px;
+    }
+    
+    input:focus,
+    textarea:focus,
+    select:focus,
+    .form-control:focus,
+    #title:focus,
+    #file-picker:focus {
+        border-color: #5a8a04 !important;
+        outline: 0 !important;
+        box-shadow: 0 0 0 0.2rem rgba(69, 110, 2, 0.25) !important;
+    }
+
+    .original-value strong {
+        color: #856404;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h3 class="mb-0">Edit Post</h3>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('edit_post', id=post.id) }}" id="edit-post-form" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="title" class="form-label fw-bold">Title</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="title" 
+                                   name="title" 
+                                   value="{{ post.title }}"
+                                   required
+                                   maxlength="255">
+                            <input type="hidden" id="original-title" value="{{ post.title }}">
+                            <div id="original-title-display" class="original-value" style="display: none;">
+                                **Original Title:** <span id="original-title-text"></span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="body" class="form-label fw-bold">Body</label>
+                            <div id="editor"></div>
+                            <input type="hidden" name="body" id="body">
+                        </div>
+                        <div class="mb-3">
+                            <div>
+                                <label class="form-label fw-bold">Code Snippets</label>
+                            </div>
+                            {% if code_snippets %}
+                            <div id="code-section" class="mt-2">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div id="codeSnippetsContainer"></div>
+                                        <button type="button" class="btn btn-sm btn-success" id="addCodeSnippet">
+                                            <i class="bi"></i> Add Another Code Block
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <button type="button" class="btn btn btn-sm" style="color: #456e02; border-color: #456e02;" onclick="toggleCodeSection()">
+                                <i class="bi bi-code-slash"></i> Add Code Block
+                            </button>
+                            <div id="code-section" style="display: none;" class="mt-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div id="codeSnippetsContainer"></div>
+                                        <button type="button" class="btn btn-sm btn-success" id="addCodeSnippet">
+                                            <i class="bi"></i> Add Another Code Block
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <label class="fw-bold mb-3">Attachments</label>
+                        <div class="card mb-3">
+                            {% if attachments %}
+                            <div class="card-header bg-light">
+                                Current Attachments
+                            </div>
+                            <div class="card-body">
+                                {% for attachment in attachments %}
+                                <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
+                                    <div>
+                                        <i></i>
+                                        <a href="{{ url_for('download_file', filename=attachment.filename) }}" target="_blank">
+                                            {{ attachment.original_filename }}
+                                        </a>
+                                        <small class="text-muted ms-2">({{ (attachment.file_size / 1024) | round(2) }} KB)</small>
+                                    </div>
+                                    <div>
+                                        <button type="button" class="btn btn-sm btn-danger" onclick="markForDeletion({{ attachment.id }}, this)">
+                                            Delete
+                                        </button>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                            <div>
+                                <div class="card-body">
+                                    <input type="file" id="hidden-file-input" name="new_attachments" multiple style="display: none;">
+                                    <input type="file" class="form-control mb-3" id="file-picker" accept=".txt,.pdf,.png,.jpg,.jpeg,.gif,.doc,.docx,.xls,.xlsx,.zip,.csv">
+                                    <div id="selected-files-list"></div> 
+                                    <small class="form-text text-muted">
+                                        Max 16MB per file. Allowed: txt, pdf, png, jpg, jpeg, gif, doc, docx, xls, xlsx, zip, csv
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 mb-2 pb-2" style="margin-left: 50px;">
+                            <button type="submit" class="btn" style="background-color: #456e02; color: white !important;">Save Changes</button>
+                            <a href="{{ url_for('view_post', id=post.id) }}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/r/r.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/shell/shell.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/markdown/markdown.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var quill = new Quill('#editor', {
+        theme: 'snow',
+        modules: {
+            toolbar: [
+                [{ 'header': [1, 2, 3, false] }],
+                ['bold', 'italic', 'underline', 'strike'],
+                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                [{ 'indent': '-1'}, { 'indent': '+1' }],
+                ['link'],
+                ['clean']
+            ]
+        }
+    });
+    var existingContent = {{ post.body|tojson|safe }};
+    quill.root.innerHTML = existingContent;
+
+    let snippetCount = 0;
+    let codeEditors = {};
+    const container = document.getElementById('codeSnippetsContainer');
+    const addButton = document.getElementById('addCodeSnippet');
+    const languageModes = {
+        'text': 'text/plain',
+        'python': 'python',
+        'javascript': 'javascript',
+        'java': 'text/x-java',
+        'cpp': 'text/x-c++src',
+        'c': 'text/x-csrc',
+        'csharp': 'text/x-csharp',
+        'sql': 'sql',
+        'html': 'htmlmixed',
+        'css': 'css',
+        'markdown': 'markdown',
+        'r': 'r',
+        'bash': 'shell',
+        'json': 'javascript',
+        'xml': 'xml',
+        'php': 'text/x-php',
+        'ruby': 'text/x-ruby',
+        'go': 'text/x-go',
+        'rust': 'text/x-rustsrc',
+        'swift': 'text/x-swift',
+        'yaml': 'text/x-yaml'
+    };
+    {% if code_snippets %}
+        {% for snippet in code_snippets %}
+        loadExistingSnippet(
+            {{ loop.index0 }},
+            '{{ snippet.id }}',
+            '{{ snippet.title|e }}',
+            '{{ snippet.language }}',
+            {{ snippet.code|tojson|safe }}
+        );
+        {% endfor %}
+        snippetCount = {{ code_snippets|length }};
+    {% endif %}
+    function loadExistingSnippet(index, snippetId, title, language, code) {
+        const editorDiv = document.createElement('div');
+        editorDiv.className = 'code-editor-container card mb-3';
+        editorDiv.id = `editor-container-${index}`;
+        editorDiv.innerHTML = `
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <span><i class="bi"></i> Code Block ${index + 1}</span>
+                <button type="button" class="btn btn-sm btn-danger" onclick="removeCodeEditor(${index})">
+                    <i class="bi"></i> Remove
+                </button>
+            </div>
+            <div class="card-body">
+                <input type="hidden" name="code_id_${index}" value="${snippetId}">
+                <div class="row mb-2">
+                    <div class="col-md-6">
+                        <input type="text" class="form-control form-control-sm" 
+                               id="code_title_${index}" 
+                               name="code_title_${index}" 
+                               value="${title || ''}"
+                               placeholder="Title (optional) e.g., 'home.py'">
+                    </div>
+                    <div class="col-md-6">
+                        <select class="form-select form-select-sm" 
+                                id="code_language_${index}" 
+                                name="code_language_${index}" 
+                                onchange="changeLanguage(${index}, this.value)">
+                            <option value="text">Plain Text</option>
+                            <option value="python">Python</option>
+                            <option value="javascript">JavaScript</option>
+                            <option value="java">Java</option>
+                            <option value="cpp">C++</option>
+                            <option value="c">C</option>
+                            <option value="csharp">C#</option>
+                            <option value="sql">SQL</option>
+                            <option value="html">HTML</option>
+                            <option value="css">CSS</option>
+                            <option value="markdown">Markdown</option>
+                            <option value="r">R</option>
+                            <option value="bash">Bash/Shell</option>
+                            <option value="json">JSON</option>
+                            <option value="xml">XML</option>
+                            <option value="php">PHP</option>
+                            <option value="ruby">Ruby</option>
+                            <option value="go">Go</option>
+                            <option value="rust">Rust</option>
+                            <option value="swift">Swift</option>
+                            <option value="yaml">YAML</option>
+                        </select>
+                    </div>
+                </div>
+                <textarea id="code_content_${index}" name="code_content_${index}" style="display: none;"></textarea>
+                <div id="codemirror_${index}"></div>
+            </div>
+        `;
+        container.appendChild(editorDiv);
+        setTimeout(() => {
+            const textarea = document.getElementById(`code_content_${index}`);
+            if (textarea) {
+                textarea.value = code;
+                const editor = CodeMirror.fromTextArea(textarea, {
+                    mode: languageModes[language] || 'text/plain',
+                    theme: 'monokai',
+                    lineNumbers: true,
+                    indentUnit: 4,
+                    smartIndent: true,
+                    indentWithTabs: false,
+                    lineWrapping: true,
+                    matchBrackets: true,
+                    extraKeys: {
+                        'Tab': function(cm) {
+                            if (cm.somethingSelected()) {
+                                cm.indentSelection('add');
+                            } else {
+                                cm.replaceSelection('    ', 'end');
+                            }
+                        },
+                        'Shift-Tab': function(cm) {
+                            cm.indentSelection('subtract');
+                        }
+                    }
+                });
+                codeEditors[index] = editor;
+                editor.setSize(null, 300);
+                const langSelect = document.getElementById(`code_language_${index}`);
+                if (langSelect) {
+                    langSelect.value = language;
+                }
+            }
+        }, 100);
+    }
+    window.toggleCodeSection = function() {
+        const section = document.getElementById('code-section');
+        if (section.style.display === 'none') {
+            section.style.display = 'block';
+            if (snippetCount === 0) {
+                addCodeEditor();
+            }
+        } else {
+            section.style.display = 'none';
+        }
+    };
+    window.addCodeEditor = function() {
+        const snippetId = snippetCount++;
+        const editorDiv = document.createElement('div');
+        editorDiv.className = 'code-editor-container card mb-3';
+        editorDiv.id = `editor-container-${snippetId}`;
+        editorDiv.innerHTML = `
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <span><i class="bi"></i> Code Block ${snippetId + 1}</span>
+                <button type="button" class="btn btn-sm btn-danger" onclick="removeCodeEditor(${snippetId})">
+                    <i class="bi"></i> Remove
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-md-6">
+                        <input type="text" class="form-control form-control-sm" 
+                               id="code_title_${snippetId}" 
+                               name="code_title_${snippetId}" 
+                               placeholder="Title (optional) e.g., 'home.py'">
+                    </div>
+                    <div class="col-md-6">
+                        <select class="form-select form-select-sm" 
+                                id="code_language_${snippetId}" 
+                                name="code_language_${snippetId}" 
+                                onchange="changeLanguage(${snippetId}, this.value)">
+                            <option value="text">Plain Text</option>
+                            <option value="python" selected>Python</option>
+                            <option value="javascript">JavaScript</option>
+                            <option value="java">Java</option>
+                            <option value="cpp">C++</option>
+                            <option value="c">C</option>
+                            <option value="csharp">C#</option>
+                            <option value="sql">SQL</option>
+                            <option value="html">HTML</option>
+                            <option value="css">CSS</option>
+                            <option value="markdown">Markdown</option>
+                            <option value="r">R</option>
+                            <option value="bash">Bash/Shell</option>
+                            <option value="json">JSON</option>
+                            <option value="xml">XML</option>
+                            <option value="php">PHP</option>
+                            <option value="ruby">Ruby</option>
+                            <option value="go">Go</option>
+                            <option value="rust">Rust</option>
+                            <option value="swift">Swift</option>
+                            <option value="yaml">YAML</option>
+                        </select>
+                    </div>
+                </div>
+                <textarea id="code_content_${snippetId}" name="code_content_${snippetId}" style="display: none;"></textarea>
+                <div id="codemirror_${snippetId}"></div>
+            </div>
+        `;
+        container.appendChild(editorDiv);
+        setTimeout(() => {
+            const textarea = document.getElementById(`code_content_${snippetId}`);
+            if (textarea) {
+                const editor = CodeMirror.fromTextArea(textarea, {
+                    mode: 'python',
+                    theme: 'monokai',
+                    lineNumbers: true,
+                    indentUnit: 4,
+                    smartIndent: true,
+                    indentWithTabs: false,
+                    lineWrapping: true,
+                    matchBrackets: true,
+                    extraKeys: {
+                        'Tab': function(cm) {
+                            if (cm.somethingSelected()) {
+                                cm.indentSelection('add');
+                            } else {
+                                cm.replaceSelection('    ', 'end');
+                            }
+                        },
+                        'Shift-Tab': function(cm) {
+                            cm.indentSelection('subtract');
+                        }
+                    }
+                });
+                codeEditors[snippetId] = editor;
+                editor.setSize(null, 300);
+            }
+        }, 100);
+    };
+    window.changeLanguage = function(snippetId, language) {
+        const editor = codeEditors[snippetId];
+        if (editor) {
+            editor.setOption('mode', languageModes[language] || 'text/plain');
+        }
+    };
+    window.removeCodeEditor = function(snippetId) {
+        if (confirm('Are you sure you want to remove this code snippet?')) {
+            const editorContainer = document.getElementById(`editor-container-${snippetId}`);
+            if (editorContainer) {
+                if (codeEditors[snippetId]) {
+                    codeEditors[snippetId].toTextArea();
+                    delete codeEditors[snippetId];
+                }
+                editorContainer.remove();
+            }
+        }
+    };
+    if (addButton) {
+        addButton.addEventListener('click', addCodeEditor);
+    }
+    const attachmentsToDelete = new Set();
+    window.markForDeletion = function(attachmentId, button) {
+        if (attachmentsToDelete.has(attachmentId)) {
+            attachmentsToDelete.delete(attachmentId);
+            button.classList.remove('btn-dark');
+            button.classList.add('btn-danger');
+            button.innerHTML = '<i></i> Delete';
+        } else {
+            attachmentsToDelete.add(attachmentId);
+            button.classList.remove('btn-danger');
+            button.classList.add('btn-dark');
+            button.innerHTML = '<i></i> Deleted';
+        }
+    };
+    document.getElementById('edit-post-form').addEventListener('submit', function(e) {
+        var html = quill.root.innerHTML;
+        if (quill.getText().trim().length === 0) {
+            e.preventDefault();
+            alert('Please enter post body content');
+            return false;
+        }
+        document.getElementById('body').value = html;
+        for (const [snippetId, editor] of Object.entries(codeEditors)) {
+            editor.save();
+        }
+        const snippets = document.querySelectorAll('.code-editor-container');
+        snippets.forEach((snippet, index) => {
+            snippet.querySelectorAll('[name^="code_"]').forEach(input => {
+                const baseName = input.name.replace(/_\d+$/, '');
+                input.name = `${baseName}_${index}`;
+            });
+        });
+        document.querySelectorAll('input[name="delete_attachment"]').forEach(el => el.remove());
+        attachmentsToDelete.forEach(attachmentId => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'delete_attachment';
+            input.value = attachmentId;
+            this.appendChild(input);
+        });
+    });
+
+    (function() {
+        const filePicker = document.getElementById('file-picker');
+        const hiddenFileInput = document.getElementById('hidden-file-input');
+        const selectedFilesList = document.getElementById('selected-files-list');
+        if (!filePicker || !hiddenFileInput || !selectedFilesList) {
+            return;
+        }
+        let selectedFiles = new DataTransfer();
+        filePicker.addEventListener('change', function(e) {
+            const files = Array.from(e.target.files);
+            files.forEach(file => {
+                if (file.size > 16 * 1024 * 1024) {
+                    alert(`File "${file.name}" is too large. Maximum size is 16MB.`);
+                    return;
+                }
+                const existingFiles = Array.from(selectedFiles.files);
+                const isDuplicate = existingFiles.some(f =>
+                    f.name === file.name && f.size === file.size
+                );
+                if (!isDuplicate) {
+                    selectedFiles.items.add(file);
+                }
+            });
+            hiddenFileInput.files = selectedFiles.files;
+            filePicker.value = '';
+            updateFileDisplay();
+        });
+        function updateFileDisplay() {
+            selectedFilesList.innerHTML = '';
+            if (selectedFiles.files.length === 0) {
+                selectedFilesList.innerHTML = '<p class="text-muted small mb-0>No new files selected</p>';
+                return;
+            }
+            const fileListDiv = document.createElement('div');
+            fileListDiv.className = 'border rounded p-2 bg-light mb-2';
+            Array.from(selectedFiles.files).forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'd-flex justify-content-between align-items-center pb-2 mb-2';
+                if (index < selectedFiles.files.length - 1) {
+                    fileItem.className += ' border-bottom';
+                }
+                const fileInfo = document.createElement('div');
+                const fileIcon = getFileIcon(file.name);
+                fileInfo.innerHTML = `
+                    <i class="bi ${fileIcon}"></i> ${escapeHtml(file.name)}
+                    <small class="text-muted">(${(file.size / 1024).toFixed(2)} KB)</small>
+                `;
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn btn-sm btn-danger';
+                removeBtn.innerHTML = '<i class="bi"></i> Remove';
+                removeBtn.onclick = function() {
+                    removeFile(index);
+                };
+                fileItem.appendChild(fileInfo);
+                fileItem.appendChild(removeBtn);
+                fileListDiv.appendChild(fileItem);
+            });
+            const totalSize = Array.from(selectedFiles.files).reduce((sum, file) => sum + file.size, 0);
+            const countDiv = document.createElement('div');
+            countDiv.className = 'mt-2 text-success';
+            countDiv.innerHTML = `
+                <i class="bi bi-check-circle"></i> ${selectedFiles.files.length} file(s) ready to upload 
+                <span class="text-muted">(Total: ${(totalSize / 1024).toFixed(2)} KB)</span>
+            `;
+            selectedFilesList.appendChild(fileListDiv);
+            selectedFilesList.appendChild(countDiv);
+        }
+        function removeFile(index) {
+            const dt = new DataTransfer();
+            const files = Array.from(selectedFiles.files);
+            files.forEach((file, i) => {
+                if (i !== index) {
+                    dt.items.add(file);
+                }
+            });
+            selectedFiles = dt;
+            hiddenFileInput.files = selectedFiles.files;
+            updateFileDisplay();
+        }
+        function getFileIcon(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const iconMap = {
+                'pdf': 'bi-file-pdf',
+                'doc': 'bi-file-word',
+                'docx': 'bi-file-word',
+                'xls': 'bi-file-excel',
+                'xlsx': 'bi-file-excel',
+                'zip': 'bi-file-zip',
+                'png': 'bi-file-image',
+                'jpg': 'bi-file-image',
+                'jpeg': 'bi-file-image',
+                'gif': 'bi-file-image',
+                'txt': 'bi-file-text',
+                'csv': 'bi-file-spreadsheet'
+            };
+            return iconMap[ext] || 'bi-file-earmark';
+        }
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        updateFileDisplay();
+    })();
+});
+</script>
+{% endblock %}
