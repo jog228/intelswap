@@ -1,5 +1,6 @@
+<!doctype html>
 {% extends "base.html" %}
-{% block title %}Home - Knowledge Exchange{% endblock %}
+{% block title %}Home - Intelswap{% endblock %}
 {% block extra_head %}
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <style>
@@ -149,7 +150,8 @@
                                 {% if first_p|length > 200 %}
                                     {{ first_p[:200] }}...
                                 {% else %}
-                                    {{ first_p }}{% if post.body.split('</p>')|length > 1 %}...{% endif %}
+                                    {% set remaining = post.body.split('</p>', 1)[1:]|join('</p>')|striptags|trim if post.body.split('</p>')|length > 1 else '' %}
+                                    {{ first_p }}{% if remaining %}...{% endif %}
                                 {% endif %}
                             {% elif plain_text|length > 200 %}
                                 {{ plain_text[:200] }}...

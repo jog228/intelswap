@@ -1,36 +1,37 @@
+<!doctype html>
 {% extends "base.html" %}
-{% block title%}Tags - Knowledge Exchange{% endblock %}
+{% block title %}Datasets - Intelswap{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
     <div class="row">
         <div class="col-md-12">
-            <h2>Browse by Tag</h2>
+            <h2>Browse by Dataset</h2>
             <p class="text-muted">
-                {{ grouped_tags.values()|map('length')|sum }} tags available
+                {{ grouped_datasets.values()|map('length')|sum }} datasets available
             </p>
             <nav class="mb-4 p-3 bg-light rounded text-center">
-                {% set all_letters = ['#', '.', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'] %}
+                {% set all_letters = ['#', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']%}
                 {% for letter in all_letters %}
-                    {% if letter in all_letters %}
+                    {% if letter in available_letters %}
                         <a href="#section-{{ letter }}" class="btn btn-sm m-1" style="background-color: #456e02; color: white;">{{ letter }}</a>
                     {% else %}
                         <span class="btn btn-sm btn-secondary disabled m-1" style="opacity: 0.3;">{{ letter }}</span>
                     {% endif %}
                 {% endfor %}
             </nav>
-            <div id="tagContainer">
-                {% for letter, tags in grouped_tags.items() %}
+            <div id="datasetContainer">
+                {% for letter, datasets in grouped_datasets.items() %}
                 <div class="letter-section mb-5" id="section-{{ letter }}">
                     <h3 class="p-3 rounded" style="background-color: #a3c482; color: black;">{{ letter }}</h3>
                     <div class="list-group mt-3">
-                        {% for tag in tags %}
-                        <a href="{{ url_for('tag_detail', slug=tag.slug) }}"
-                            class="list-group-item list-group-item-action tag-item d-flex justify-content-between align-items-center" 
-                            data-name="{{ tag.name|lower }}">
-                            <span>{{ tag.name }}</span>
+                        {% for dataset in datasets %}
+                        <a href="{{ url_for('dataset_detail', slug=dataset.slug) }}" 
+                           class="list-group-item list-group-item-action dataset-item d-flex justify-content-between align-items-center" 
+                           data-name="{{ dataset.name|lower }}">
+                            <span>{{ dataset.name }}</span>
                             <span class="badge bg-black rounded-pill">
-                                {{ tag.post_count }} post{{ 's' if tag.post_count != 1 else '' }}
+                                {{ dataset.post_count }} post{{ 's' if dataset.post_count != 1 else '' }}
                             </span>
                         </a>
                         {% endfor %}
@@ -41,12 +42,14 @@
         </div>
     </div>
 </div>
-<a href="#" id="backToTop" class="btn btn-primary" 
+
+<a href="#" id="backToTop" class="btn"
     style="position: fixed; bottom: 30px; right: 30px; display: none; border-radius: 50%; width: 50px; height: 50px; line-height: 50px; padding: 0; text-align: center; z-index: 1000; background-color: #456e02; color: white;">
-    <i class="bi bi-arrow-up"></i>
+    <i class="bi-arrow-up"></i>
 </a>
+
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function(){
         document.querySelectorAll('nav a[href^="#section-"]').forEach(anchor => {
             anchor.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -58,15 +61,15 @@
         });
         const backToTop = document.getElementById('backToTop');
         window.addEventListener('scroll', function() {
-            if(window.pageYOffset > 300) {
+            if (window.pageYOffset > 300) {
                 backToTop.style.display = 'block';
             } else {
                 backToTop.style.display = 'none';
             }
         });
-        backToTop.addEventListener('click', function(e) {
+        backToTop.addEventListener('click', function(e){
             e.preventDefault();
-            window.scrollTo({ top: 0, behavior: 'smooth'});
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         });
     });
 </script>

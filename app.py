@@ -2,14 +2,17 @@ from flask import Flask, render_template, jsonify, request, redirect, url_for, f
 import psycopg2
 from db_helper import get_db_connection, execute_query, execute_insert
 import os
-from flask_login import LoginManager, UserMixin, login_required, current_user
+from flask_login import LoginManager, UserMixin, login_required, current_user, login_user, logout_user
 import uuid
 from werkzeug.utils import secure_filename
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__, template_folder = 'templates', static_folder='static')
-app.secret_key = 'a3f8b2c9d1e4f5a6b7c8d9e0f1a2b3c4'
+app.secret_key = os.environ.get('SECRET_KEY', 'dev-only-change-me')
 
-UPLOAD_FOLDER = '/add/home/m1jbg01/knowledge-exchange/uploads'
+UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads'))
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'csv'}
 MAX_FILE_SIZE = 16 * 1024 * 1024
 
@@ -23,7 +26,7 @@ def allowed_file(filename):
 
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view ='home'
+login_manager.login_view ='login'
 
 flaskenv = os.environ.get('FLASK_ENV', 'development')
 
@@ -35,40 +38,32 @@ class User(UserMixin):
         self.full_name = full_name
 
 @login_manager.user_loader
-def load_user(userid: str):
+def load_user(user_id: str):
+    user_data = execute_query("SELECT * FROM users WHERE id = %s", (user_id,), fetchone=True)
+    if user_data:
+        return User(m1id=user_data['username'], 
+            user_id=user_data['id'],
+            username=user_data['username'], 
+            full_name=user_data['full_name']
+        )
     return None
 
-@login_manager.request_loader
-def load_user_from_request(request):
-    remote_user = request.remote_user
-    if remote_user:
-        m1id = remote_user.split('@')[0]
-        g.remote_user_from_loader = m1id
-        return get_or_create_user(m1id)
-    if flaskenv == 'development':
-        test_user = request.args.get('test_user')
-    local_user = os.environ.get('USER')
-    if local_user:
-        g.remote_user_from_loader = local_user
-        return get_or_create_user(local_user)
-    return None
-
-def get_or_create_user(m1id: str):
+def get_or_create_user(username: str):
     """Get user from database or create if it doesn't exist"""
     query = "SELECT * FROM users WHERE username = %s"
-    user_data = execute_query(query, (m1id,), fetchone=True)
+    user_data = execute_query(query, (username,), fetchone=True)
     if user_data:
-        return User(m1id=m1id,user_id=user_data['id'], username=user_data['username'], full_name=user_data['full_name'])
+        return User(m1id=username, user_id=user_data['id'], username=user_data['username'], full_name=user_data.get('full_name'))
     else:
-        email = f"{m1id}@frb.gov"
+        email = f"{username}@example.come"
         insert_query = """
             INSERT INTO users (username, email, full_name)
             VALUES (%s, %s, %s)
             RETURNING id, username, full_name
         """
-        result = execute_insert(insert_query, (m1id, email, m1id))
+        result = execute_insert(insert_query, (username, email, username))
         if result:
-            return User(m1id=m1id, user_id=result['id'], username=result['username'], full_name=result.get('full_name'))
+            return User(m1id=username, user_id=result['id'], username=result['username'], full_name=result.get('full_name'))
         return None
 
 def get_usr() -> str:
@@ -77,6 +72,28 @@ def get_usr() -> str:
         return current_user.m1id
     return 'not authenticated'
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip().lower()
+        if not username:
+            flash('Enter a username', 'error')
+            return render_template('login.html')
+        user = get_or_create_user(username)
+        if user:
+            login_user(user)
+            return redirect(url_for('home'))
+        flash('Could not log in', 'error')
+    demo_users = execute_query("SELECT username, full_name FROM users ORDER BY username", fetchall=True) or []
+    return render_template('login.html', demo_users=demo_users)
+
+@app.route('/logout', methods=['POST'])
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('home'))
 
 @app.route('/')
 def home():
@@ -204,9 +221,6 @@ def new_post():
         if not body:
             flash('Body is required', 'error')
             return render_template('posts/new_post.html')
-        if not tags_id or len(tags_id) == 0:
-            flash('Please select at least 1 tag for your post', 'error')
-            return redirect(url_for('new_post'))
         if len(tags_id) > 10:
             flash('Maximum 10 tags allowed per post', 'error')
             return redirect(url_for('new_post'))
@@ -1372,4 +1386,4 @@ def unarchive(id):
     return redirect(url_for('view_archive'))
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5001)

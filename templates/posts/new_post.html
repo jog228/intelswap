@@ -1,5 +1,6 @@
+<!doctype html>
 {% extends "base.html" %}
-{% block title %}New Post{% endblock %}
+{% block title %}New Post - Intelswap{% endblock %}
 {% block extra_head %}
 <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
@@ -196,8 +197,7 @@
                         <option value="">-- Select a dataset --</option>
                     </select>
                     <small class="form-text text-muted">
-                        Select an existing DataFinder dataset from the dropdown or contact
-                        <a href="mailto:ask-a-librarian@frb.gov" style="color: #5a8a04;">Ask-a-Librarian</a> to add a new data set.
+                        Select an existing dataset from the dropdown, or leave it blank 
                     </small>
                 </div>
 
@@ -209,7 +209,7 @@
                     <select id="tags" name="tags" class="form-control" multiple style="width: 100%;">
                     </select>
                     <small class="form-text text-muted">
-                        Select relevant tags to categorize your post (required)
+                        Select up to 10 relevant tags to categorize your post (optional)
                     </small>
                 </div>
 
@@ -283,7 +283,7 @@
         });
         // tags select2 with minimum 1 required
         $('#tags').select2({
-            placeholder: '-- Search and select at least 1 tag --',
+            placeholder: '-- Search and select up to 10 tags --',
             allowClear: true,
             multiple: true,
             width: '100%',
@@ -319,13 +319,6 @@
             }
             document.getElementById('body').value = html;
 
-            var selectedTags = $('#tags').val();
-            if (!selectedTags || selectedTags.length === 0) {
-                e.preventDefault();
-                alert('Please select at least 1 tag for your post');
-                $('#tags').next('.select2-container').addClass('is-invalid');
-                return false;
-            }
             for (const [snippetId, editor] of Object.entries(codeEditors)) {
                 editor.save();
             }

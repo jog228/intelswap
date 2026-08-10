@@ -1,0 +1,21 @@
+<!doctype html>
+{% extends "base.html" %}
+{% block title %}Log in - Intelswap{% endblock %}
+{% block content %}
+<div class="container mt-5" style="max-width: 480px;">
+    <h3 class="mb-3">Log in</h3>
+    <p class="text-muted">
+        Demo login for the portfolio build of this app from my 2026 Application of Development &amp; Design Internship &mdash; pick a username, no password needed.
+    </p>
+
+    <form method="POST" action="{{ url_for('login') }}" class="mb-4">
+        <div class="mb-3">
+            <label for="username" class="form-label">Username</label>
+            <input type="text" class="form-control" id="username" name="username"
+                   placeholder="e.g. jgoldstein or a new name" autocomplete="off" required>
+            <small class="form-text text-muted">New usernames are created automatically.</small>
+        </div>
+        <button type="submit" class="btn" style="background-color: #456e02; color: white;">Log in</button>
+    </form>
+</div>
+{% endblock %}
