@@ -14,7 +14,7 @@
                 {% set all_letters = ['#', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']%}
                 {% for letter in all_letters %}
                     {% if letter in available_letters %}
-                        <a href="#section-{{ letter }}" class="btn btn-sm m-1" style="background-color: #456e02; color: white;">{{ letter }}</a>
+                        <a href="#section-{{ letter }}" class="btn btn-sm m-1" style="background-color: #5237a3; color: white;">{{ letter }}</a>
                     {% else %}
                         <span class="btn btn-sm btn-secondary disabled m-1" style="opacity: 0.3;">{{ letter }}</span>
                     {% endif %}
@@ -23,7 +23,7 @@
             <div id="datasetContainer">
                 {% for letter, datasets in grouped_datasets.items() %}
                 <div class="letter-section mb-5" id="section-{{ letter }}">
-                    <h3 class="p-3 rounded" style="background-color: #a3c482; color: black;">{{ letter }}</h3>
+                    <h3 class="p-3 rounded" style="background-color: #c9b3e0; color: black;">{{ letter }}</h3>
                     <div class="list-group mt-3">
                         {% for dataset in datasets %}
                         <a href="{{ url_for('dataset_detail', slug=dataset.slug) }}" 
@@ -44,7 +44,7 @@
 </div>
 
 <a href="#" id="backToTop" class="btn"
-    style="position: fixed; bottom: 30px; right: 30px; display: none; border-radius: 50%; width: 50px; height: 50px; line-height: 50px; padding: 0; text-align: center; z-index: 1000; background-color: #456e02; color: white;">
+    style="position: fixed; bottom: 30px; right: 30px; display: none; border-radius: 50%; width: 50px; height: 50px; line-height: 50px; padding: 0; text-align: center; z-index: 1000; background-color: #5237a3; color: white;">
     <i class="bi-arrow-up"></i>
 </a>
 

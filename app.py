@@ -533,6 +533,7 @@ def accept_comment(post_id, comment_id):
             "UPDATE comments SET is_accepted = TRUE WHERE id = %s AND post_id = %s",
             (comment_id, post_id)
         )
+        conn.commit()
         cursor.close()
         flash('Answer accepted', 'success')
         return redirect(url_for('view_post', id=post_id))
@@ -555,6 +556,7 @@ def unaccept_comment(post_id, comment_id):
             "UPDATE comments SET is_accepted = FALSE WHERE id = %s AND post_id = %s",
             (comment_id, post_id)
         )
+        conn.commit()
         cursor.close()
     flash('Answer unmarked successfully', 'success')
     return redirect(url_for('view_post', id=post_id))

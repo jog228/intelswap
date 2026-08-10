@@ -108,7 +108,7 @@
             </div>
             <hr>
             <p class="text-muted mb-3">
-                By <a href="{{ url_for('author_posts', username=comment.username) }}" style="color:#456e02;">{{ comment.full_name or comment.username }}</a>
+                By <a href="{{ url_for('author_posts', username=comment.username) }}" style="color:#5237a3;">{{ comment.full_name or comment.username }}</a>
                 {% if comment.updated_at and comment.updated_at != comment.created_at %}
                     <small class="text-muted">edited at {{ comment.updated_at.strftime('%-m/%-d/%Y at %I:%M %p') }}</small>
                 {% else %}
@@ -157,7 +157,7 @@
             </div>
             {% endif %}
             <div class="mb-3">
-                <button type="button" class="btn btn-sm" style="background-color: #456e02; color: white !important;" onclick="toggleReplyForm({{ comment.id }})">
+                <button type="button" class="btn btn-sm" style="background-color: #5237a3; color: white !important;" onclick="toggleReplyForm({{ comment.id }})">
                     Reply
                 </button>
                 {% if comment.author_id == current_user_id %}
@@ -188,7 +188,7 @@
                         <input type="hidden" name="body" id="edit-body-{{ comment.id }}">
                         <textarea id="edit-original-content-{{ comment.id }}" style="display: none;">{{ comment.body|safe }}</textarea>
                     </div>
-                    <button type="submit" class="btn btn-sm" style="background-color: #456e02; color: white !important;">Save</button>
+                    <button type="submit" class="btn btn-sm" style="background-color: #5237a3; color: white !important;">Save</button>
                     <button type="button" class="btn btn-secondary btn-sm" style="color: white !important;" onclick="toggleEditForm({{ comment.id }})">Cancel</button>
                 </form>
             </div>
@@ -209,7 +209,7 @@
                             Allowed: txt, pdf, png, jpg, jpeg, gif, doc, docx, xls, xlsx, zip, csv
                         </small>
                     </div>
-                    <button type="submit" class="btn btn-sm" style="background-color: #456e02; color: white !important;">Reply</button>
+                    <button type="submit" class="btn btn-sm" style="background-color: #5237a3; color: white !important;">Reply</button>
                     <button type="button" class="btn btn-secondary btn-sm" onclick="toggleReplyForm({{ comment.id }})">Cancel</button>
                 </form>
             </div>
@@ -240,10 +240,10 @@
                 <div class="card-body">
                     <h2 >{{ post.title }}</h2>
                     <p class="text-muted">
-                        By <a href="{{ url_for('author_posts', username=post.username) }}" style="color: #456e02;">{{ post.full_name or post.username }}</a>
+                        By <a href="{{ url_for('author_posts', username=post.username) }}" style="color: #5237a3;">{{ post.full_name or post.username }}</a>
                         {% if post.updated_at != post.created_at %}
                             edited at {{ post.created_at.strftime('%-m/%-d/%Y %I:%M %p') }}
-                            <a href="{{ url_for('post_history', id=post.id) }}" class="text-decoration-none small" style="color: #456e02;">
+                            <a href="{{ url_for('post_history', id=post.id) }}" class="text-decoration-none small" style="color: #5237a3;">
                                 (view history)
                             </a>
                         {% else %}
@@ -362,7 +362,7 @@
                                 <input type="hidden" name="body" id="comment-body">
                             </div>
                             <div class="mb-3">
-                                <button type="button" class="btn btn btn-sm" style="color: #456e02; border-color: #456e02;" onclick="toggleCommentCodeSection()">
+                                <button type="button" class="btn btn btn-sm" style="color: #5237a3; border-color: #5237a3;" onclick="toggleCommentCodeSection()">
                                     <i class="bi bi-code-slash"></i> Add Code Block
                                 </button>
                                 <div id="comment-code-section" style="display: none;" class="mt-3">
@@ -382,7 +382,7 @@
                                 <div class="selected-files-list"></div>
                                 <small class="text-muted">Optional: Attach files (max 16MB each)</small>
                             </div>
-                            <button type="submit" class="btn btn-sm" style="background-color: #456e02; color: white !important;">Add Comment</button>
+                            <button type="submit" class="btn btn-sm" style="background-color: #5237a3; color: white !important;">Add Comment</button>
                         </form>
                     </div>
                 </div>

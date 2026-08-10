@@ -5,7 +5,7 @@
 <div class="container mt-4">
     <div class="row">
         <div class="col-md-12">
-            <div class="card mb-4" style="background-color: #456e02; color: white !important;">
+            <div class="card mb-4" style="background-color: #5237a3; color: white !important;">
                 <div class="card-body">
                     <h2 ><i class="bi"></i> {{ tag.name }}</h2>
                     <p class="mb-3">
@@ -24,7 +24,7 @@
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <h5 class="card-title mb-0 flex-grow-1">
-                                <a href="{{ url_for('view_post', id=post.id) }}" class="text-decoration-none" style="color: #456e02;">{{ post.title }}</a>
+                                <a href="{{ url_for('view_post', id=post.id) }}" class="text-decoration-none" style="color: #5237a3;">{{ post.title }}</a>
                             </h5>
                             <div class="text-end ms-3" style="min-width: 150px;">
                                 <div class="mb-1">
@@ -42,7 +42,7 @@
                             </div>
                         </div>
                         <p class="text-muted small mb-3">
-                            By <a href="{{ url_for('author_posts', username=post.username) }}" style="color: #456e02;">{{ post.full_name or post.username }}</a>
+                            By <a href="{{ url_for('author_posts', username=post.username) }}" style="color: #5237a3;">{{ post.full_name or post.username }}</a>
                             {% if post.updated_at != post.created_at %}
                                 edited at {{ post.created_at.strftime('%-m/%-d/%Y %I:%M %p') }}
                             {% else %}
@@ -192,16 +192,16 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 <style>
     .pagination .page-link {
-        color: #456e02;
+        color: #5237a3;
     }
     .pagination .page-link:hover {
-        color: #567f03;
-        background-color: rgba(69, 110, 2, 0.1);
-        border-color: #456e02;
+        color: #4f026e;
+        background-color: rgba(79, 2, 110, 0.25);
+        border-color: #5237a3;
     }
     .pagination .page-item.active .page-link {
-        background-color: #456e02;
-        border-color: #456e02;
+        background-color: #5237a3;
+        border-color: #5237a3;
         color: white;
     }
     .pagination .page-item.disabled .page-link {

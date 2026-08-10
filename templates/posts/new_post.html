@@ -44,7 +44,7 @@
     .select2-container--default .select2-selection--single:focus {
         border-color: #5a5a5a;
         outline: 0;
-        box-shadow: 0 0 0 0.2rem rgba(69, 110, 2, 0.25);
+        box-shadow: 0 0 0 0.2rem rgba(79, 2, 110, 0.25);
     }
     input:focus,
     textarea:focus,
@@ -52,9 +52,9 @@
     .form-control:focus,
     #title:focus,
     #file-picker:focus {
-        border-color: #5a8a04 !important;
+        border-color: #4f026e !important;
         outline: 0 !important;
-        box-shadow: 0 0 0 0.2rem rgba(69, 110, 2, 0.25) !important;
+        box-shadow: 0 0 0 0.2rem rgba(79, 2, 110, 0.25) !important;
     }
 
     .select2-container--default .select2-selection--multiple {
@@ -88,8 +88,8 @@
         width: auto !important;
     }
     .select2-container--default .select2-selection--multiple .select2-selection__choice {
-        background-color: #456e02;
-        border: 1px solid #456e02;
+        background-color: #5237a3;
+        border: 1px solid #5237a3;
         color: #fff;
         border-radius: 4px;
         padding: 2px 8px;
@@ -114,17 +114,17 @@
         background: transparent;
     }
     .select2-container--default.select2-container--focus .select2-selection--multiple {
-        border-color: #5a8a04;
+        border-color: #7f048a;
         outline: 0;
-        box-shadow: 0 0 0 0.2rem rgba(69, 110, 2, 0.25);
+        box-shadow: 0 0 0 0.2rem rgba(79, 2, 110, 0.25);
     }
     .select2-container--default .select2-results__option--highlighted[aria-selected] {
-        background-color: #456e02 !important;
+        background-color: #5237a3 !important;
         color: white !important;
     }
     .select2-container--default .select2-results__option[aria-selected=true] {
-        background-color: #e8f4dc !important;
-        color: #456e02 !important;
+        background-color: #ede3f5 !important;
+        color: #5237a3 !important;
     }
     .select2-container.is-invalid .select2-selection {
         border-color: #dc3545 !important;
@@ -156,7 +156,7 @@
                 </div>
 
                 <div class="mb-3">
-                    <button type="button" class="btn btn-small" style="color: #456e02; border-color: #456e02;" onclick="toggleCodeSection()">
+                    <button type="button" class="btn btn-small" style="color: #5237a3; border-color: #5237a3;" onclick="toggleCodeSection()">
                         <i class="bi bi-code-slash"></i> Add Code Block
                     </button>
                     <div id="code-section" style="display: none;" class="mt-3">
@@ -214,7 +214,7 @@
                 </div>
 
                 <div class="mb-3">
-                    <button type="submit" class="btn" style="background-color: #456e02; color: white !important;">Create Post</button>
+                    <button type="submit" class="btn" style="background-color: #5237a3; color: white !important;">Create Post</button>
                     <a href="{{ url_for('home') }}" class="btn btn-secondary">Cancel</a>
                 </div>
             </form>
