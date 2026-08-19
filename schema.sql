@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 INSERT INTO users (username, email, full_name)
 VALUES
-    ('m1jbg01', 'jolie.b.goldstein@frb.gov', 'Jolie Goldstein')
+    ('jolie', 'jolie@example.com', 'Jolie Goldstein')
 ON CONFLICT (username) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS posts (
