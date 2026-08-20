@@ -1,6 +1,29 @@
 # Intelswap
 A Stack Overflow-style Q&A and knowledge-sharing built for a specific organization's internal (technical) knowledge - in this case, originally built for the Federal Reserve Board (since altered and renamed for this standalone version). Users post questions or posts, get answers via nested comment threads, mark accepted answers, tag and link posts to reference databases, bookmark content, and track edit history on every post.
 
+## Screenshots
+> Seeded with synthetic demo content — the original Knowledge Exchange platform handled internal Federal Reserve research data, which isn't shown here.
+
+### Home Feed
+![Home feed](screenshots/home.png)
+Recent posts and questions, filterable by type, with tag labels and view/comment counts at a glance.
+
+### Question Detail
+![Question detail](screenshots/view-post.png)
+A technical question with tagging (Flask, Python) and inline actions — edit, archive, and bookmark.
+
+### Accepted Answer
+![Accepted answer](screenshots/answer-accepted.png)
+Comment threading with an accept-answer mechanic, so the best solution to a question is marked and surfaced.
+
+### Browse by Tag
+![Browse by tag](screenshots/browse-by-tag.png)
+Content organized and discoverable by topic tag, with live post counts per tag.
+
+### Bookmarks
+![Bookmarks](screenshots/view-bookmarks.png)
+Users can save posts and questions to revisit later from a personal bookmarks view.
+
 **Stack:** Flask, PostgreSQL, Jinja2, psycopg2, Flask-login
 
 ## Why this exists
